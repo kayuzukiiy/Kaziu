@@ -1,0 +1,71 @@
+-- StarterPlayerScripts/AimingAssistGUI.lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local aimingAssistEvent = ReplicatedStorage:WaitForChild("AimingAssistEvent")
+local userInputService = game:GetService("UserInputService")
+
+-- Create the GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 200, 0, 50)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.Text = "Enable Aimbot"
+toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+toggleButton.Parent = screenGui
+
+local aimbotEnabled = false
+
+-- Function to toggle aimbot
+local function toggleAimbot()
+    aimbotEnabled = not aimbotEnabled
+    if aimbotEnabled then
+        toggleButton.Text = "Disable Aimbot"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    else
+        toggleButton.Text = "Enable Aimbot"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    end
+end
+
+toggleButton.MouseButton1Click:Connect(toggleAimbot)
+
+-- Variables for touch input
+local touchInput = nil
+
+-- Function to send touch position for aimbot when touch moves
+local function onTouchMoved(input)
+    if not touchInput then return end
+    if aimbotEnabled then
+        local touchPosition = input.Position
+        aimingAssistEvent:FireServer(touchPosition)
+    end
+end
+
+-- Function to track the start of a touch (to initialize it)
+local function onTouchStarted(input)
+    if not aimbotEnabled then return end
+    touchInput = input
+end
+
+-- Function to track touch end
+local function onTouchEnded(input)
+    if touchInput == input then
+        touchInput = nil
+    end
+end
+
+-- Connect the touch events
+userInputService.TouchStarted:Connect(onTouchStarted)
+userInputService.TouchMoved:Connect(onTouchMoved)
+userInputService.TouchEnded:Connect(onTouchEnded)
+
+-- Mobile version of the onMouseMove function (does nothing on desktop)
+local function onMobileInput()
+    if not touchInput or not aimbotEnabled then return end
+    -- Send the touch position to the server to process aimbot
+    aimingAssistEvent:FireServer(touchInput.Position)
+end
+
+-- Continuously check touch input for mobile
+game:GetService("RunService").RenderStepped:Connect(onMobileInput)
